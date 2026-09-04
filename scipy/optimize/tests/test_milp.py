@@ -475,3 +475,17 @@ def test_regression_gh24141():
 
     assert res.success
     assert_allclose(a @ res.x, b)
+
+
+def test_options_not_mutated_gh26095():
+    # `milp` used to `pop` 'disp' and 'node_limit' out of the caller's dict,
+    # so reusing one options dict silently dropped both after the first call
+    options = {"disp": False, "node_limit": 5, "mip_rel_gap": 0.01}
+    expected = dict(options)
+
+    milp(1, options=options)
+    assert options == expected
+
+    # the second call must still see the same options as the first
+    milp(1, options=options)
+    assert options == expected
