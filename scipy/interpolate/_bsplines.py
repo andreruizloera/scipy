@@ -385,7 +385,14 @@ class _BSpline:
             raise ValueError("BSpline.basis_element requires at least 2 knots")
 
         t = _as_float_array(t)
-        t = np.r_[(t[0]-1,) * k, t, (t[-1]+1,) * k]
+        # Pad the knot vector so that `t[0]` and `t[-1]` become the ends of the
+        # base interval. A well-formed knot vector has exactly `k` knots to the
+        # right of the base interval, and knots of `t` which are equal to
+        # `t[-1]` count towards those. Otherwise `t[-1]` is the right end of a
+        # zero-length knot span, where `_deBoor_D` gives zero, and the basis
+        # element evaluates to zero instead of to its limit from the left.
+        nlast = np.count_nonzero(t == t[-1])
+        t = np.r_[(t[0]-1,) * k, t, (t[-1]+1,) * max(k + 1 - nlast, 0)]
         c = np.zeros_like(t)
         c[k] = 1.
 

@@ -368,6 +368,30 @@ class TestBSpline:
         xp_assert_close(b(xx),
                 xp.where(xx < 1, xx*xx, (2.-xx)**2), atol=1e-14)
 
+    def test_basis_element_repeated_last_knot(self):
+        # gh-20888: a basis element is a spline with a single non-zero
+        # coefficient, and must agree with it at the right end of the base
+        # interval, too. With a repeated last knot, `t[-1]` used to be the
+        # right end of a zero-length knot span, and the basis element
+        # evaluated to zero there instead of to its limit from the left.
+        k = 3
+        t = np.r_[[0.]*k, np.arange(6.), [5.]*k]
+        n = t.shape[0] - k - 1
+
+        for j in range(n):
+            b = BSpline.basis_element(t[j:j+k+2])
+
+            c = np.zeros(n)
+            c[j] = 1.
+            b1 = BSpline(t, c, k)
+
+            xx = np.linspace(t[j], t[j+k+1], 21)
+            xp_assert_close(b(xx), b1(xx), atol=1e-14)
+
+        # the rightmost element is one at the right end of its support
+        b = BSpline.basis_element([4., 5., 5., 5., 5.])
+        xp_assert_close(b(np.asarray([5.])), np.asarray([1.]), atol=1e-14)
+
     def test_basis_element_rndm(self):
         b = _make_random_spline()
         t, c, k = b.tck
